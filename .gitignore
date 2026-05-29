@@ -1,0 +1,42 @@
+# ===== macOS =====
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ===== Windows =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ===== Linux =====
+*~
+.directory
+.Trash-*
+
+# ===== Editor / IDE =====
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# ===== Logs & temp =====
+*.log
+*.tmp
+*.bak
+*.orig
+
+# ===== Secrets / local config =====
+.env
+.env.*
+*.local
+
+# ===== AI assistant local state =====
+.claude/
+CLAUDE.local.md
