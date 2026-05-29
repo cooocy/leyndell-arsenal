@@ -27,6 +27,7 @@
 - 尽量不暴露 @Getter；按需给必要字段 / 方法暴露访问能力 + @ToString + @EqualsAndHashCode(of = "id")
 - 字段全部 @Nonnull / @Nullable 强标注
 - 私有无参构造 + 私有 @JsonCreator 构造（给 Jackson 反序列化用）
+- Jackson 序列化基于字段（field-based），不依赖 getter；分析/改动实体序列化行为直接看字段 + @JsonCreator，无需关注 getter 是否暴露
 - 静态工厂方法 命名：通用用 new_()，业务化的用动词（Mood.checkin()）
 - 单字段修改：resetXxx(value)
 - 谓词：is/can 前缀（isOwner / canModify / canBeViewedBy），纯函数、返回 boolean、不抛异常、不依赖外部上下文
