@@ -9,9 +9,12 @@
 
 1. 分层 & 包结构
 
+```
   domain/{aggregate}/         — Entity, Repository(接口), Service, VO, Enum
   application/
     service/{aggregate}/      — AppService
+    coordinator/{aggregate}/  — Coordinator, AppService 与 domain / Domain Service 之间的应用层中间层
+    shared/{aggregate}/       — 应用层共享语义，如跨 RO / Coordinator / AppService 使用的枚举、轻量值对象
     arv/ro/{aggregate}/       — Request Object
     arv/vo/{aggregate}/       — View Object
     profile/                  — ApplicationProfile
@@ -21,6 +24,7 @@
     config/                   — @Configuration / Bean 装配
     {component}/              — OssClient, WorkWeiXin 等基础设施组件
   interfaces/controller/{aggregate}/
+```
 
 2. Domain Entity
 
@@ -77,6 +81,8 @@
 - 鉴权三步走：加载 → 调谓词 → 不通过抛异常
 - 业务异常用 CodeAndMessage 项目枚举；通用异常用 er.rennala.response.Codes
 - 编排薄、不写规则逻辑，规则在 domain 方法 / Domain Service 里
+- AppService 与 domain / Domain Service 之间的中间编排可下沉到 application/coordinator/{aggregate}，避免 AppService 变厚
+- RO、Coordinator、AppService 都需要使用的应用层语义放 application/shared/{aggregate}；Coordinator 不依赖 RO
 
 7. Controller
 
