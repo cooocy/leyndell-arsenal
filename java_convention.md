@@ -165,6 +165,11 @@
 - 方法 ≤ 50 行
 - 中文注释，// 后留空格，中文汉字 + 英文标点
 - domain 类顶部加 /** <p> 一句话说明 */
+- 新增 / 修改 public class、record、interface、enum 时，顶部加 Javadoc，说明一句核心职责
+- public 方法必须加 Javadoc，说明方法意图、关键业务规则、@param、@return
+- private 方法如果包含业务语义、转换规则、分支策略、非显而易见的计算，也要加 Javadoc
+- 简单 getter / setter / 构造器 / 明显自解释的私有小工具方法，不强制加 Javadoc
+- 方法注释写业务含义，不复述代码；复杂副作用要说明触发时机和失败影响
 - @Nonnull/@Nullable 不要省
 - 多个参数换行对齐，每行一个
 - 不要返回 null 集合
