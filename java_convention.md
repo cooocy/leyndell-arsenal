@@ -12,6 +12,7 @@
 ```
   domain/{aggregate}/         — Entity, Repository(接口), Service, VO, Enum
   application/
+    events/                   — 应用事件对象，如 CatInteractedEvent
     service/{aggregate}/      — AppService
     coordinator/{aggregate}/  — Coordinator, AppService 与 domain / Domain Service 之间的应用层中间层
     shared/{aggregate}/       — 应用层共享语义，如跨 RO / Coordinator / AppService 使用的枚举、轻量值对象
@@ -24,6 +25,7 @@
     config/                   — @Configuration / Bean 装配
     {component}/              — OssClient, WorkWeiXin 等基础设施组件
   interfaces/controller/{aggregate}/
+  interfaces/listeners/{aggregate}/
 ```
 
 2. Domain Entity
@@ -84,7 +86,20 @@
 - AppService 与 domain / Domain Service 之间的中间编排可下沉到 application/coordinator/{aggregate}，避免 AppService 变厚
 - RO、Coordinator、AppService 都需要使用的应用层语义放 application/shared/{aggregate}；Coordinator 不依赖 RO
 
-7. Controller
+7. Event / Publisher / Listener
+
+- 事件对象放 application/events，命名 `{Biz}Event`，如 CatInteractedEvent
+- 事件是应用层事实载体，不放业务逻辑；字段用 @Nonnull/@Nullable 标注
+- 事件发布方通常是 AppService，使用 ApplicationEventPublisher，在业务写入成功后 publishEvent
+- Listener 放 interfaces/listeners/{aggregate}，@Component + @Slf4j
+- Listener 只做：监听事件 → 调 AppService；不直接调 Repository，不写业务规则
+- 需要事务提交后处理副作用时，Listener 用 @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+- Listener catch 异常时 log.error(..., e)，避免事件副作用影响主流程
+- 事件处理链路：publisher → interfaces/listeners → application/service → application/coordinator → domain / repository
+- Coordinator 负责把事件 / 应用层参数编排成领域对象或调用领域服务，不持有 Listener 职责
+- Event 可以作为 AppService / Coordinator 入参；如果事件开始携带投递元数据、跨进程消息字段，或一个事件被多个用例以不同语义消费，应在 Listener 中转换成 application/shared/{aggregate} 的 Command / 轻量值对象
+
+8. Controller
 
 - @RestController + @RequestMapping("/{aggregate}")（单数）
 - 字段命名：AlbumAppService s + HttpServletRequest request（新代码用 s，老的 service 不强求统一）
@@ -95,7 +110,7 @@
 - 返回 R.ok(...) / R.ok()（R<Void>）
 - 不放业务逻辑，只做：拿 profile → 调 AppService → 包 R
 
-8. 错误处理
+9. 错误处理
 
 - 通用错误码：er.rennala.response.Codes（ArgsIllegal / RecordNotFound / ServerError / TokenInvalid）
 - 业务错误码：domain/global/CodeAndMessage，按域分段编号（wx 70100 段、oss 70200 段、ca 10200 段...）
@@ -103,14 +118,14 @@
 - 不向前端泄露原始异常 message；catch 里 log.error(..., e) 记日志，再抛预定义错误码
 - 反探测：用户/相册不存在或无权访问，返回与"业务失败"相同的错误码
 
-9. RO / VO
+10. RO / VO
 
 - RO：{Entity}{Action}RO（AlbumCreateRO / AlbumUpdateRO / MoodCheckinRO）
 - VO：{Entity}VO
 - 字段 public，加 @Nonnull/@Nullable，类上加 @ToString
 - 没有 setter（用 public 字段）
 
-10. 数据库 / Liquibase
+11. 数据库 / Liquibase
 
 - 路径：src/main/resources/liquibase/v{ver}/{seq}_{tableName}.xml
 - master.xml 集中 <include>
@@ -118,14 +133,14 @@
 - 表与索引拆 createTable + createIndex
 - 枚举存 varchar(16)；JSON 字段 type="json"；时间 timestamp；布尔 tinyint
 
-11. 配置
+12. 配置
 
 - application.yml 主配置，profile 切换：active: ${CONFIGURATION_TAIL} 环境变量
 - application-{profile}.yaml 放在项目根目录（不在 resources）
 - Properties 类：@Component + @ConfigurationProperties(prefix = "kebab-case") + @Setter @Getter @ToString
 - 字段都给默认值（空字符串 / 默认数字），避免 NPE
 
-12. 工具 / 常用库
+13. 工具 / 常用库
 
 ┌─────────────────┬──────────────────────────────────────────────────┐
 │      用途       │                       选用                       │
@@ -145,7 +160,7 @@
 │ 日志            │ @Slf4j                                           │
 └─────────────────┴──────────────────────────────────────────────────┘
 
-13. 代码细节
+14. 代码细节
 
 - 方法 ≤ 50 行
 - 中文注释，// 后留空格，中文汉字 + 英文标点
