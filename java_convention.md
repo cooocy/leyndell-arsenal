@@ -16,6 +16,7 @@
     service/{aggregate}/      — AppService
     coordinator/{aggregate}/  — Coordinator, AppService 与 domain / Domain Service 之间的应用层中间层
     shared/{aggregate}/       — 应用层共享语义，如跨 RO / Coordinator / AppService 使用的枚举、轻量值对象
+    arv/assembler/            — Domain / 应用层对象与 VO 之间的装配转换
     arv/ro/{aggregate}/       — Request Object
     arv/vo/{aggregate}/       — View Object
     profile/                  — ApplicationProfile
@@ -118,12 +119,20 @@
 - 不向前端泄露原始异常 message；catch 里 log.error(..., e) 记日志，再抛预定义错误码
 - 反探测：用户/相册不存在或无权访问，返回与"业务失败"相同的错误码
 
-10. RO / VO
+10. RO / VO / Assembler
 
 - RO：{Entity}{Action}RO（AlbumCreateRO / AlbumUpdateRO / MoodCheckinRO）
 - VO：{Entity}VO
 - 字段 public，加 @Nonnull/@Nullable，类上加 @ToString
 - 没有 setter（用 public 字段）
+- VO 只承载接口输出数据，不依赖 Domain Entity，不定义 `of()` / `from()` 等转换方法
+- Domain Entity / 应用层对象 → VO 的转换统一放 `application/arv/assembler`
+- Assembler 命名 `{Entity}Assembler`，使用 `@Component`，由 AppService 注入调用；Controller 不直接调用 Assembler
+- 单对象转换方法命名 `toVO(entity)`；集合转换方法命名 `toVOs(entities)`
+- 集合遍历和逐项转换统一由 Assembler 完成；AppService 直接调用 `assembler.toVOs(entities)`，不自行 `stream().map(assembler::toVO)`
+- 简单同名字段转换可使用 `JacksonObjectMapper.convert`；涉及字段重命名、组合、脱敏、外部查询时显式赋值
+- Assembler 只负责数据转换和展示装配，不做鉴权、参数校验、业务规则，不直接写 Repository
+- 需要 Repository / 外部数据补充 VO 时可注入依赖，但查询应服务于展示装配，复杂查询和业务编排仍留在 AppService / Coordinator
 
 11. 数据库 / Liquibase
 
